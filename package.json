@@ -1,0 +1,23 @@
+{
+  "name": "steklovata",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZloyGvozd/Steklovata.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ZloyGvozd/Steklovata/issues"
+  },
+  "homepage": "https://github.com/ZloyGvozd/Steklovata#readme",
+  "devDependencies": {
+    "electron": "^42.5.0"
+  }
+}
