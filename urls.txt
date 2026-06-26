@@ -1,0 +1,3 @@
+dogfish.aternos.host
+kouprey.aternos.host
+orfe.aternos.host

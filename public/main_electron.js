@@ -66,20 +66,6 @@ setInterval(() => {
 
 let started = false;
 
-function upderr(msg){
-    err.innerHTML = "сервер не отвечает:"+msg
-}
-function updall(msg){
-    all.innerHTML = "всего запросов:"+msg
-}
-function updfind(msg){
-    find.innerHTML = "серверов найдено:"+msg
-}
-
-function mylog(msg){
-    log_text.innerHTML = msg
-}
-
 function copyText(element) {
     const text = element.textContent;
 
@@ -104,10 +90,13 @@ function notification(text){
 start_stop.onclick = () =>{
     started = !started
     start_stop.innerHTML = started? "стоп" : "старт"
+    started? chart.start() : chart.stop()
+    started? window.electronAPI.runSearch(ips.value,ports.value,treads.value) : null
 }
 
 function toggleActive() {
     this.classList.toggle('active');
 }
+chart.stop()
 
-console.warn("котенко рядом")
+console.warn("котенко здесь нет")
