@@ -56,7 +56,16 @@ ipcMain.handle('runSearch', async (event,urlsPath,ports,treads)=>{
         const startIdx = i * tasksPerWorker;
         const endIdx = Math.min(startIdx + tasksPerWorker - 1, totalTasks - 1);
 
-        workers.push(new Worker())
+        workers.push(new Worker('./worker.js', {
+            workerData: {
+                workerId: i,
+                startIdx,
+                endIdx,
+                hosts, // Передавать массив ссылкой в workerData — дешево, он не копируется дублированием памяти для строк в V8 (используются общие структуры под капотом для read-only)
+                startPort,
+                portsCount
+            }
+        }))
     }
 
     console.log(hosts,startPort,endPort,tasksPerWorker)
