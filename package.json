@@ -19,5 +19,8 @@
   "homepage": "https://github.com/ZloyGvozd/Steklovata#readme",
   "devDependencies": {
     "electron": "^42.5.0"
+  },
+  "dependencies": {
+    "socks": "^2.8.9"
   }
 }
