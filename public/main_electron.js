@@ -98,9 +98,24 @@ start_stop.onclick = () =>{
 let LastResults = []
 setInterval(async () => {
     const results = await window.electronAPI.getResults()
+    //const results = [{ip:"dildazvon.host", port:18717, modt: "alsnakhdaldhasbdhjs",version:"1.21.8",player_count:3}]
     if(results !== LastResults){
         LastResults = results
-
+        let findedBuilder = ""
+        results.forEach((e) => {
+            let players = []
+            e.players.forEach((e) => players.push(e.name))
+            const plToWrite = players.join(', ')
+            findedBuilder +=
+                `<div class="list-item" onclick="if(event.target.tagName !== 'A'){const c=getComputedStyle(this).borderBottomColor; this.style.borderBottomColor = (c==='rgb(10, 252, 74)')?'white':'rgb(10, 252, 74)';}"><span>
+            <span class="link" style="color: #eded2a" onclick="copyText(this); event.stopPropagation();">${e.ip}:${e.port}</span><br>
+            <span style="color: #ffffff">${(typeof e.modt === 'string' && e.modt !== '')? e.modt.replace(/§./g, '') : "none"}</span><br>
+            <span style="color: #d1d1d1">версия: <span style="color: #00c4ff">${e.version}</span></span><br>
+            <span style="color: #d1d1d1">игроков: <span style="color: #51da1b">${e.player_count}</span></span><br>
+            <span style="color: #18d198">${plToWrite}</span>
+            </span></div>`;
+            finded.innerHTML = findedBuilder
+        })
     }
 },500)
 

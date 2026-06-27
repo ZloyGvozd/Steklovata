@@ -1,3 +1,9 @@
 dogfish.aternos.host
 kouprey.aternos.host
 orfe.aternos.host
+hyena.aternos.host
+spinyfin.aternos.host
+sablefish.aternos.host
+mullet.aternos.host
+chartreux.aternos.host
+pilchard.aternos.host
