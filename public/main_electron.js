@@ -52,17 +52,7 @@ function addRLogValue(value) {
     logRMetricLine.append(timestamp, value);
 }
 
-let current = 0
-setInterval(() => {
-    current += 1;
-    addYLogValue(Math.sin(current/10));
-}, 300);
 
-let current2 = 0
-setInterval(() => {
-    current2 += 1;
-    addRLogValue(Math.sin(current2/10));
-}, 3000);
 
 let started = false;
 
@@ -87,12 +77,32 @@ function notification(text){
     }, 2000); // Уведомление исчезнет через 2 секунды
 }
 
+let interval
+
 start_stop.onclick = () =>{
     started = !started
     start_stop.innerHTML = started? "стоп" : "старт"
     started? chart.start() : chart.stop()
-    started? window.electronAPI.runSearch(ips.value,ports.value,treads.value) : null
+    started? window.electronAPI.runSearch(ips.value,ports.value,treads.value,proxy_ip.value,proxy_port.value) : window.electronAPI.stopSearch()
+    if(started){
+        interval = setInterval(async () => {
+            const stats = await window.electronAPI.getStats()
+            addYLogValue(stats.success)
+            addRLogValue(stats.errors)
+            console.log(stats)
+        },100)
+    }else{
+        clearInterval(interval)
+    }
 }
+let LastResults = []
+setInterval(async () => {
+    const results = await window.electronAPI.getResults()
+    if(results !== LastResults){
+        LastResults = results
+
+    }
+},500)
 
 function toggleActive() {
     this.classList.toggle('active');

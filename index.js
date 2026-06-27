@@ -16,6 +16,7 @@ function createWindow() {
     });
     mainWindow.setResizable(false)
     mainWindow.removeMenu()
+    mainWindow.webContents.openDevTools()
 
     mainWindow.loadFile('public\\index.html');
 }
@@ -36,8 +37,10 @@ app.on('window-all-closed', () => {
 
 //Ядро
 let workers = []
+let errors = 0
+let success = 0
 
-ipcMain.handle('runSearch', async (event,urlsPath,ports,treads)=>{
+ipcMain.handle('runSearch', async (event,urlsPath,ports,treads,proxy_ip,proxy_port)=>{
     console.log(urlsPath,ports,treads)
 
     const data = await fs.readFile(urlsPath, { encoding: 'utf8' })
@@ -63,10 +66,39 @@ ipcMain.handle('runSearch', async (event,urlsPath,ports,treads)=>{
                 endIdx,
                 hosts, // Передавать массив ссылкой в workerData — дешево, он не копируется дублированием памяти для строк в V8 (используются общие структуры под капотом для read-only)
                 startPort,
-                portsCount
+                portsCount,
+                proxy_ip,
+                proxy_port
             }
         }))
     }
+    workers.forEach((e) => {
+        e.on('message',(result)=>{
+            if(result.reason === 'serverResponse'){
+                success++
+
+                const aboutServer = result.json
+                if(aboutServer.players.online > 0){
+
+                }
+            }if(result.reason === 'serverError'){
+                errors++
+            }if(result.reason === 'serverTimeout'){
+                errors++
+            }
+        })
+    })
 
     console.log(hosts,startPort,endPort,tasksPerWorker)
+})
+
+ipcMain.handle('stopSearch', async () => {
+    workers.forEach((e) => {
+        e.postMessage({task:'stop'})
+    })
+    workers = []
+})
+
+ipcMain.handle('getStats', async () => {
+    return {success: success,errors: errors}
 })
