@@ -2,6 +2,8 @@ const {app, BrowserWindow, ipcMain} = require('electron');
 const path = require('path');
 const fs = require('node:fs/promises');
 const { Worker } = require('worker_threads');
+const net = require("net");
+const {spawn} = require("child_process");
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -16,7 +18,7 @@ function createWindow() {
     });
     mainWindow.setResizable(false)
     mainWindow.removeMenu()
-    mainWindow.webContents.openDevTools()
+    //mainWindow.webContents.openDevTools()
 
     mainWindow.loadFile('public\\index.html');
 }
@@ -39,6 +41,15 @@ app.on('window-all-closed', () => {
 let workers = []
 let errors = 0
 let success = 0
+let founded = []
+
+const TOR_CONTROL_PORT = 9051;
+const TOR_PASSWORD = 'pisun';
+
+const torProcess = spawn("E:\\Tor\\tor\\tor.exe", ['-f', "E:\\Tor\\tor\\torrc"], {
+    windowsHide: false,
+    stdio: 'ignore'  // если не хочешь видеть вывод
+});
 
 ipcMain.handle('runSearch', async (event,urlsPath,ports,treads,proxy_ip,proxy_port)=>{
     console.log(urlsPath,ports,treads)
@@ -64,7 +75,7 @@ ipcMain.handle('runSearch', async (event,urlsPath,ports,treads,proxy_ip,proxy_po
                 workerId: i,
                 startIdx,
                 endIdx,
-                hosts, // Передавать массив ссылкой в workerData — дешево, он не копируется дублированием памяти для строк в V8 (используются общие структуры под капотом для read-only)
+                hosts,
                 startPort,
                 portsCount,
                 proxy_ip,
@@ -73,18 +84,21 @@ ipcMain.handle('runSearch', async (event,urlsPath,ports,treads,proxy_ip,proxy_po
         }))
     }
     workers.forEach((e) => {
-        e.on('message',(result)=>{
+        e.on('message',async (result)=>{
             if(result.reason === 'serverResponse'){
                 success++
 
                 const aboutServer = result.json
+                console.log(result)
                 if(aboutServer.players.online > 0){
-
+                    founded.push({ip: result.server.ip, port: result.server.port, modt: aboutServer.description, version: aboutServer.version.name, player_count: aboutServer.players.online,players: aboutServer.players.sample})
                 }
             }if(result.reason === 'serverError'){
                 errors++
+                await restartTor(false)
             }if(result.reason === 'serverTimeout'){
                 errors++
+                await restartTor(false)
             }
         })
     })
@@ -102,3 +116,38 @@ ipcMain.handle('stopSearch', async () => {
 ipcMain.handle('getStats', async () => {
     return {success: success,errors: errors}
 })
+
+ipcMain.handle('getResults', () => {
+    return founded
+})
+
+async function restartTor(manual){
+    if ((errors % 20 === 0) || manual) {
+        return new Promise((resolve, reject) => {
+            const socket = net.connect(TOR_CONTROL_PORT, '127.0.0.1', () => {
+                socket.write(`AUTHENTICATE "${TOR_PASSWORD}"\r\n`);
+            });
+
+            let stage = 0;
+
+            socket.on('data', (data) => {
+                const msg = data.toString();
+                if (stage === 0 && msg.includes('250 OK')) {
+                    stage = 1;
+                    socket.write('SIGNAL NEWNYM\r\n');
+                } else if (stage === 1 && msg.includes('250 OK')) {
+                    console.log(`[${new Date().toLocaleTimeString()}] Tor IP был сменён.`);
+                    socket.end();
+                    resolve();
+                } else if (msg.includes('515')) {
+                    reject('Ошибка авторизации. Проверь пароль в torrc и в скрипте.');
+                    socket.end();
+                }
+            });
+
+            socket.on('error', (err) => {
+                reject('Ошибка подключения к Tor: ' + err.message);
+            });
+        });
+    }
+}

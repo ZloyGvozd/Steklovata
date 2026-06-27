@@ -5,10 +5,10 @@ const { SocksClient } = require('socks');
 
 const {workerId, startIdx, endIdx, hosts, startPort, portsCount, proxy_ip, proxy_port} = workerData;
 
-function getShuffledPortOffset(index, max) {
+function getShuffledPortOffset(index, max, salt) {
     // Используем простую хэш-функцию (Knuth's multiplicative method)
     // Число 2654435761 — это золотое сечение для 32-битных чисел, отлично распределяет
-    const hash = Math.imul(index, 2654435761);
+    const hash = Math.imul(index+salt, 2654435761);
     return Math.abs(hash) % max;
 }
 
@@ -17,15 +17,16 @@ function getRandomArbitrary(min, max) {
 }
 
 async function run() {
+    const salt = Math.floor(Math.random() * 1000000);
     for (let i = startIdx; i <= endIdx; i++) {
         const ipIndex = Math.floor(i / portsCount);
         const currentIp = hosts[ipIndex];
 
         const sequentialPortOffset = i % portsCount;
-        const randomPortOffset = getShuffledPortOffset(sequentialPortOffset, portsCount);
+        const randomPortOffset = getShuffledPortOffset(sequentialPortOffset, portsCount, salt);
 
         const currentPort = startPort + randomPortOffset;
-        console.log(`${currentIp}:${currentPort}`)
+        //console.log(`${currentIp}:${currentPort}`)
 
         const tools = new netTools()
 
@@ -53,7 +54,8 @@ async function run() {
             const options = {
                 proxy: { host: proxy_ip, port: parseInt(proxy_port), type: 5 },
                 command: 'connect',
-                destination: { host: currentIp, port: currentPort }
+                destination: { host: currentIp, port: currentPort },
+                timeout: 60000
             };
 
             SocksClient.createConnection(options).then((info) => {
@@ -83,8 +85,9 @@ async function run() {
                             //console.log(jsonString)
 
                             const jsonObject = JSON.parse(jsonString);
-                            console.log(jsonObject.players.online, jsonObject.players.sample,jsonObject.description)
-                            parentPort.postMessage({reason:'serverResponse',json:jsonObject})
+                            //console.log(jsonObject)
+                            //console.log(jsonObject.players.online, jsonObject.players.sample,jsonObject.description)
+                            parentPort.postMessage({reason:'serverResponse',json:jsonObject,server:{ip:currentIp,port:currentPort}})
                         } catch (e) {
                             console.error(e)
                             parentPort.postMessage({reason:'serverError'})
