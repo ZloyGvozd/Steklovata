@@ -21,6 +21,7 @@
     "electron": "^42.5.0"
   },
   "dependencies": {
-    "socks": "^2.8.9"
+    "socks": "^2.8.9",
+    "unique-names-generator": "^4.7.1"
   }
 }
