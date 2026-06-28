@@ -11,7 +11,7 @@ const find = document.getElementById("find")
 const log_text = document.getElementById("log")
 const finded = document.getElementById("finded")
 
-const chart = new SmoothieChart({
+const chartOptions = {
     grid: {
         strokeStyle: '#2c2c2c', // Цвет линий сетки
         fillStyle: '#111111',   // Фон графика
@@ -23,12 +23,16 @@ const chart = new SmoothieChart({
         fillStyle: '#888888',   // Цвет текста с делениями
         fontSize: 12
     },
-    millisPerPixel: 115,         // Скорость прокрутки (меньше = быстрее)
-    interpolation: 'linear'     // Сглаживание углов ('linear', 'step', или 'bezier')
-});
+    millisPerPixel: 115,         // Скорость прокрутки
+    interpolation: 'linear'     // Сглаживание углов
+};
+
+const chart = new SmoothieChart(chartOptions);
+const chart2 = new SmoothieChart(chartOptions);
 
 // Привязываем график к нашему тегу <canvas>
 chart.streamTo(document.getElementById("log-canvas"), 500);
+chart2.streamTo(document.getElementById("log-canvas2"), 500)
 
 const logYMetricLine = new TimeSeries();
 const logRMetricLine = new TimeSeries();
@@ -37,7 +41,7 @@ chart.addTimeSeries(logYMetricLine, {
     fillStyle: 'rgba(255,204,0,0.05)',
     lineWidth: 1
 });
-chart.addTimeSeries(logRMetricLine, {
+chart2.addTimeSeries(logRMetricLine, {
     strokeStyle: '#ff0000',
     fillStyle: 'rgba(255,0,0,0.05)',
     lineWidth: 1
@@ -83,6 +87,7 @@ start_stop.onclick = () =>{
     started = !started
     start_stop.innerHTML = started? "стоп" : "старт"
     started? chart.start() : chart.stop()
+    started? chart2.start() : chart2.stop()
     started? window.electronAPI.runSearch(ips.value,ports.value,treads.value,proxy_ip.value,proxy_port.value) : window.electronAPI.stopSearch()
     if(started){
         interval = setInterval(async () => {
@@ -100,6 +105,7 @@ setInterval(async () => {
     const results = await window.electronAPI.getResults()
     //const results = [{ip:"dildazvon.host", port:18717, modt: "alsnakhdaldhasbdhjs",version:"1.21.8",player_count:3}]
     if(results !== LastResults){
+        console.log("nit")
         LastResults = results
         let findedBuilder = ""
         results.forEach((e) => {
@@ -123,5 +129,6 @@ function toggleActive() {
     this.classList.toggle('active');
 }
 chart.stop()
+chart2.stop()
 
 console.warn("котенко здесь нет")
