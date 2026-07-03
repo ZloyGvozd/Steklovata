@@ -1,4 +1,4 @@
-# Steklovata
+# Steklovata ![Platform Windows](https://img.shields.io/badge/platform-Windows-0078d7?style=flat-square&logo=windows&logoColor=white) ![License](https://img.shields.io/github/license/ZloyGvozd/Steklovata?style=flat-square&color=orange)
 
 ### 🇷🇺
 **Steklovata** - это **интернет-сканер**, предназначеный для большинства популярных Minecraft хостингов, которые имеют **широкий разброс портов** (например, от 10000 до 40000), а так-же ip (или поддомены) нод, **которые вы знаете** хотя бы частично.
