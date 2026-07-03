@@ -46,7 +46,7 @@ let founded = []
 const TOR_CONTROL_PORT = 9051;
 const TOR_PASSWORD = 'pisun';
 
-const torProcess = spawn("E:\\Tor\\tor\\tor.exe", ['-f', "E:\\Tor\\tor\\torrc"], {
+const torProcess = spawn(path.join(__dirname, 'Tor\\tor\\tor.exe'), ['-f', path.join(__dirname, 'Tor\\tor\\torrc')], {
     windowsHide: false,
     stdio: 'ignore'  // если не хочешь видеть вывод
 });

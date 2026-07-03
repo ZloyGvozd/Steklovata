@@ -49,7 +49,7 @@ async function run() {
                 console.log(`[Timeout]: ${currentIp}:${currentPort}`);
                 parentPort.postMessage({reason:'serverTimeout'})
                 finish();
-            }, 10000);
+            }, 60000);
 
             const options = {
                 proxy: { host: proxy_ip, port: parseInt(proxy_port), type: 5 },
