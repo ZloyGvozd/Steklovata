@@ -43,13 +43,26 @@ let errors = 0
 let success = 0
 let founded = []
 
-const TOR_CONTROL_PORT = 9051;
 const TOR_PASSWORD = 'pisun';
 
-const torProcess = spawn(path.join(__dirname, 'Tor\\tor\\tor.exe'), ['-f', path.join(__dirname, 'Tor\\tor\\torrc')], {
-    windowsHide: false,
-    stdio: 'ignore'  // если не хочешь видеть вывод
-});
+let tors = []
+for(let i = 0; i < 20; i++) {
+    const torArgs = [
+        '--ControlPort', (9051+i).toString(),
+        '--HashedControlPassword', '16:61F657AD90C9A4DB603CC4CA3A7BC10163D9CA3F973D68B04F22C0E45C',
+        '--SocksPort', (9050-i).toString(),
+        '--UseBridges', '1',
+        '--ClientTransportPlugin', 'obfs4 exec obfs4proxy.exe',
+        '--Bridge', 'obfs4 136.61.9.205:9999 BCA9A01D0525CCA0832CEC963570724EE7079925 cert=okCbzFRm58G8f0E0w/wg06JYf+sErNRJvRpPlpHGBpn9CGMLzcdBLTwZ8cSYpX1lXiR+bQ iat-mode=0',
+        '--DataDirectory', path.join(__dirname,`Tor${i}\\tor\\tor_data`)
+    ];
+
+    const torProcess = spawn(path.join(__dirname, `Tor${i}\\tor\\tor.exe`), torArgs, {
+        windowsHide: false,
+        stdio: 'ignore'
+    });
+    tors.push({pr: torProcess,ar: torArgs,er: 0})
+}
 
 ipcMain.handle('runSearch', async (event,urlsPath,ports,treads,proxy_ip,proxy_port)=>{
     console.log(urlsPath,ports,treads)
@@ -70,6 +83,9 @@ ipcMain.handle('runSearch', async (event,urlsPath,ports,treads,proxy_ip,proxy_po
         const startIdx = i * tasksPerWorker;
         const endIdx = Math.min(startIdx + tasksPerWorker - 1, totalTasks - 1);
 
+        let proxy_ports = []
+        tors.forEach((e)=>{proxy_ports.push(e.ar[5])})
+        console.log(proxy_ports)
         workers.push(new Worker('./worker.js', {
             workerData: {
                 workerId: i,
@@ -79,7 +95,7 @@ ipcMain.handle('runSearch', async (event,urlsPath,ports,treads,proxy_ip,proxy_po
                 startPort,
                 portsCount,
                 proxy_ip,
-                proxy_port
+                proxy_ports
             }
         }))
     }
@@ -95,10 +111,14 @@ ipcMain.handle('runSearch', async (event,urlsPath,ports,treads,proxy_ip,proxy_po
                 }
             }if(result.reason === 'serverError'){
                 errors++
-                await restartTor(false)
+                tors[result.num].er++
+                await restartTor(false,tors[result.num])
+                console.log(tors)
             }if(result.reason === 'serverTimeout'){
                 errors++
-                await restartTor(false)
+                tors[result.num].er++
+                await restartTor(false,tors[result.num])
+                console.log(tors)
             }
         })
     })
@@ -114,17 +134,19 @@ ipcMain.handle('stopSearch', async () => {
 })
 
 ipcMain.handle('getStats', async () => {
-    return {success: success,errors: errors}
+    let ers = []
+    tors.forEach((e) => {ers.push(e.er)})
+    return {success: success,errors: ers}
 })
 
 ipcMain.handle('getResults', () => {
     return founded
 })
 
-async function restartTor(manual){
-    if ((errors % 20 === 0) || manual) {
+async function restartTor(manual,tor){
+    if ((tor.er % 25 === 0) || manual) {
         return new Promise((resolve, reject) => {
-            const socket = net.connect(TOR_CONTROL_PORT, '127.0.0.1', () => {
+            const socket = net.connect(parseInt(tor.ar[1]), '127.0.0.1', () => {
                 socket.write(`AUTHENTICATE "${TOR_PASSWORD}"\r\n`);
             });
 

@@ -3,7 +3,7 @@ const netTools = require("./netTools")
 const net = require("node:net");
 const { SocksClient } = require('socks');
 
-const {workerId, startIdx, endIdx, hosts, startPort, portsCount, proxy_ip, proxy_port} = workerData;
+const {workerId, startIdx, endIdx, hosts, startPort, portsCount, proxy_ip, proxy_ports} = workerData;
 
 function getShuffledPortOffset(index, max, salt) {
     // Используем простую хэш-функцию (Knuth's multiplicative method)
@@ -14,6 +14,12 @@ function getShuffledPortOffset(index, max, salt) {
 
 function getRandomArbitrary(min, max) {
     return Math.random() * (max - min) + min;
+}
+
+function getRandomInt(min, max) {
+    const minCeiled = Math.ceil(min);
+    const maxFloored = Math.floor(max);
+    return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled); // The maximum is exclusive and the minimum is inclusive
 }
 
 async function run() {
@@ -45,14 +51,17 @@ async function run() {
                 }
             };
 
+            const randomPort = getRandomInt(0,proxy_ports.length)
+            console.log("asdasddsaadsasd", proxy_ports[randomPort])
+
             const timeoutId = setTimeout(() => {
                 console.log(`[Timeout]: ${currentIp}:${currentPort}`);
-                parentPort.postMessage({reason:'serverTimeout'})
+                parentPort.postMessage({reason:'serverTimeout',num:randomPort})
                 finish();
             }, 60000);
 
             const options = {
-                proxy: { host: proxy_ip, port: parseInt(proxy_port), type: 5 },
+                proxy: { host: proxy_ip, port: parseInt(proxy_ports[randomPort]), type: 5 },
                 command: 'connect',
                 destination: { host: currentIp, port: currentPort },
                 timeout: 60000

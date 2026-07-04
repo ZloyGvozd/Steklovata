@@ -34,18 +34,25 @@ const chart2 = new SmoothieChart(chartOptions);
 chart.streamTo(document.getElementById("log-canvas"), 500);
 chart2.streamTo(document.getElementById("log-canvas2"), 500)
 
+const NUM_OF_TORS = 20
+
 const logYMetricLine = new TimeSeries();
-const logRMetricLine = new TimeSeries();
+let logErrMetrics = []
+for(let i = 0; i<NUM_OF_TORS; i++){
+    logErrMetrics.push(new TimeSeries())
+}
 chart.addTimeSeries(logYMetricLine, {
     strokeStyle: '#f7ff00',
     fillStyle: 'rgba(255,204,0,0.05)',
     lineWidth: 1
 });
-chart2.addTimeSeries(logRMetricLine, {
-    strokeStyle: '#ff0000',
-    fillStyle: 'rgba(255,0,0,0.05)',
-    lineWidth: 1
-});
+logErrMetrics.forEach((e) => {
+    chart2.addTimeSeries(e, {
+        strokeStyle: '#ff0000',
+        fillStyle: 'rgba(255,0,0,0.05)',
+        lineWidth: 1
+    });
+})
 
 function addYLogValue(value) {
     const timestamp = new Date().getTime();
@@ -53,7 +60,9 @@ function addYLogValue(value) {
 }
 function addRLogValue(value) {
     const timestamp = new Date().getTime();
-    logRMetricLine.append(timestamp, value);
+    for(let i=0;i<NUM_OF_TORS;i++) {
+        logErrMetrics[i].append(timestamp, value[i]);
+    }
 }
 
 
