@@ -25,3 +25,5 @@ As an example, the code is already configured for **Aternos** servers. To search
 3. **Install the dependencies in the project folder:** `npm install`
 4. **Set up Bridges in the file at:** `Tor\tor\torrc`. You can get them from [@GetBridgesBot](https://t.me/GetBridgesBot)
 5. **Run** `run.bat`. Alternatively, you can start it manually with `npm start`
+
+[**Beta version**](https://github.com/ZloyGvozd/Steklovata/tree/beta)
