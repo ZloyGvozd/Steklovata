@@ -23,6 +23,7 @@ function getRandomInt(min, max) {
 }
 
 async function run() {
+    let first = true
     const salt = Math.floor(Math.random() * 1000000);
     for (let i = startIdx; i <= endIdx; i++) {
         const ipIndex = Math.floor(i / portsCount);
@@ -36,6 +37,9 @@ async function run() {
 
         const tools = new netTools()
 
+
+        await new Promise(r => setTimeout(r, getRandomArbitrary(first?0:5000,10000)));
+        first = false
         await new Promise((resolve) => {
             let isFinished = false;
             let client = null
@@ -52,7 +56,7 @@ async function run() {
             };
 
             const randomPort = getRandomInt(0,proxy_ports.length)
-            console.log("asdasddsaadsasd", proxy_ports[randomPort])
+            //console.log("asdasddsaadsasd", proxy_ports[randomPort])
 
             const timeoutId = setTimeout(() => {
                 console.log(`[Timeout]: ${currentIp}:${currentPort}`);
@@ -96,9 +100,9 @@ async function run() {
                             const jsonObject = JSON.parse(jsonString);
                             //console.log(jsonObject)
                             //console.log(jsonObject.players.online, jsonObject.players.sample,jsonObject.description)
-                            parentPort.postMessage({reason:'serverResponse',json:jsonObject,server:{ip:currentIp,port:currentPort}})
+                            parentPort.postMessage({reason:'serverResponse',json:jsonObject,server:{ip:currentIp,port:currentPort}, debug:jsonString, num:randomPort})
                         } catch (e) {
-                            console.error(e)
+                            //console.error(e)
                             parentPort.postMessage({reason:'serverError'})
                         }
                         finish()
@@ -113,10 +117,8 @@ async function run() {
                 client.on("close", () => {
                     finish()
                 })
-            }).catch((e) => {console.log(e)})
+            }).catch((e) => {})
         })
-
-        await new Promise(r => setTimeout(r, getRandomArbitrary(3000,6000)));
     }
 }
 

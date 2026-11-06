@@ -1,13 +1,14 @@
 const {app, BrowserWindow, ipcMain} = require('electron');
 const path = require('path');
 const fs = require('node:fs/promises');
+const fss = require('fs');
 const { Worker } = require('worker_threads');
 const net = require("net");
 const {spawn} = require("child_process");
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
-        width: 800,
+        width: 850,
         height: 850,
         icon: path.join(__dirname, 'public\\chiken.png'),
         webPreferences: {
@@ -36,31 +37,76 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
 });
 
+const logFilePath = path.join(__dirname, 'app.log');
+
+function logToFile(message, level = 'INFO') {
+    const timestamp = new Date().toISOString();
+    const logEntry = `[${timestamp}] [${level}] ${message}\n`;
+
+    // appendFile создает файл, если его нет, и добавляет запись в конец
+    fs.appendFile(logFilePath, logEntry, (err) => {
+        if (err) {
+            console.error('Ошибка записи в лог-файл:', err);
+        }
+    });
+}
+
 
 //Ядро
 let workers = []
 let errors = 0
 let success = 0
 let founded = []
+//founded.push({ip: "zhopa.aternos.host", port: "19827", modt: "Welcome to the server of Huesos!", version: "26.3", player_count: 1,players: [{"id":"5e6d9af9-67db-388b-8b04-414c8a76161e","name":"Huesos"}], md: [true,true]})
 
 const TOR_PASSWORD = 'pisun';
 
+const NUM_OF_TORS = 40
+const NEED_TO_DELETE = false
+
+if(NEED_TO_DELETE) {
+    const files = fss.readdirSync("tmp");
+    for (const file of files) {
+        fss.rmSync(path.join("tmp", file), {recursive: true, force: true});
+    }
+
+    for (let i = 0; i < NUM_OF_TORS; i++) {
+        const targetDir = path.join(__dirname, 'tmp', `Tor${i}`)
+        fss.cpSync('./Tor', targetDir, {recursive: true})
+    }
+}
+
 let tors = []
-for(let i = 0; i < 20; i++) {
+for(let i = 0; i < NUM_OF_TORS; i++) {
     const torArgs = [
         '--ControlPort', (9051+i).toString(),
         '--HashedControlPassword', '16:61F657AD90C9A4DB603CC4CA3A7BC10163D9CA3F973D68B04F22C0E45C',
         '--SocksPort', (9050-i).toString(),
         '--UseBridges', '1',
-        '--ClientTransportPlugin', 'obfs4 exec obfs4proxy.exe',
-        '--Bridge', 'obfs4 136.61.9.205:9999 BCA9A01D0525CCA0832CEC963570724EE7079925 cert=okCbzFRm58G8f0E0w/wg06JYf+sErNRJvRpPlpHGBpn9CGMLzcdBLTwZ8cSYpX1lXiR+bQ iat-mode=0',
-        '--DataDirectory', path.join(__dirname,`Tor${i}\\tor\\tor_data`)
+        '--ClientTransportPlugin', 'webtunnel exec pluggable_transports/lyrebird.exe',
+        '--Bridge', 'webtunnel [2001:db8:1169:5d59:447d:1feb:3595:b174]:443 9E22636EA817AD4FE43F2EC14DEED5131FED1CB0 url=https://cdn-40.triplebit.dev/aif5ohWa4aWiephu ver=0.0.2',
+        '--DataDirectory', path.join(__dirname,`tmp\\Tor${i}\\tor\\tor_data`)
     ];
 
-    const torProcess = spawn(path.join(__dirname, `Tor${i}\\tor\\tor.exe`), torArgs, {
+    const torProcess = spawn(path.join(__dirname, `tmp\\Tor${i}\\tor\\tor.exe`), torArgs, {
         windowsHide: false,
-        stdio: 'ignore'
+        stdio: "pipe"
     });
+
+    torProcess.stdout.on('data', (data) => {
+        false? console.log(`[Tor ${i} STDOUT]: ${data.toString()}`) : undefined;
+    });
+
+// Вывод ошибок
+    torProcess.stderr.on('data', (data) => {
+        console.error(`[Tor ${i} STDERR]: ${data.toString()}`);
+    });
+
+// Отслеживание завершения процесса (для диагностики)
+    torProcess.on('close', (code) => {
+        console.log(`[Tor ${i}] stopped: ${code}`);
+    });
+
     tors.push({pr: torProcess,ar: torArgs,er: 0})
 }
 
@@ -102,12 +148,25 @@ ipcMain.handle('runSearch', async (event,urlsPath,ports,treads,proxy_ip,proxy_po
     workers.forEach((e) => {
         e.on('message',async (result)=>{
             if(result.reason === 'serverResponse'){
+                if(tors[result.num].er>0) tors[result.num].er -= 0.5
                 success++
 
                 const aboutServer = result.json
-                console.log(result)
+                //console.log(result)
                 if(aboutServer.players.online > 0){
-                    founded.push({ip: result.server.ip, port: result.server.port, modt: aboutServer.description, version: aboutServer.version.name, player_count: aboutServer.players.online,players: aboutServer.players.sample})
+                    logToFile(result.debug)
+                    let msg = ""
+                    try {
+                        const ChatMessage = require('prismarine-chat')(aboutServer.version.name)
+                        const rawData = aboutServer.description
+                        msg = new ChatMessage(rawData)
+                    }catch(e){
+                        logToFile("piplich")
+                        msg = aboutServer.description
+                    }
+                    const sd = 'enforcesSecureChat' in aboutServer
+                    const fd = 'modinfo' in aboutServer
+                    founded.push({ip: result.server.ip, port: result.server.port, modt: msg.toString(), version: aboutServer.version.name, player_count: aboutServer.players.online,players: aboutServer.players.sample,md:[fd,sd]})
                 }
             }if(result.reason === 'serverError'){
                 errors++
@@ -144,7 +203,8 @@ ipcMain.handle('getResults', () => {
 })
 
 async function restartTor(manual,tor){
-    if ((tor.er % 25 === 0) || manual) {
+    if ((tor.er >=50) || manual) {
+        tor.er = 0
         return new Promise((resolve, reject) => {
             const socket = net.connect(parseInt(tor.ar[1]), '127.0.0.1', () => {
                 socket.write(`AUTHENTICATE "${TOR_PASSWORD}"\r\n`);
@@ -173,3 +233,4 @@ async function restartTor(manual,tor){
         });
     }
 }
+

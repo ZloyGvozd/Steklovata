@@ -10,6 +10,7 @@ const all = document.getElementById("all")
 const find = document.getElementById("find")
 const log_text = document.getElementById("log")
 const finded = document.getElementById("finded")
+const speedOut = document.getElementById("speedOut")
 
 const chartOptions = {
     grid: {
@@ -34,7 +35,7 @@ const chart2 = new SmoothieChart(chartOptions);
 chart.streamTo(document.getElementById("log-canvas"), 500);
 chart2.streamTo(document.getElementById("log-canvas2"), 500)
 
-const NUM_OF_TORS = 20
+const NUM_OF_TORS = 40
 
 const logYMetricLine = new TimeSeries();
 let logErrMetrics = []
@@ -57,6 +58,11 @@ logErrMetrics.forEach((e) => {
 function addYLogValue(value) {
     const timestamp = new Date().getTime();
     logYMetricLine.append(timestamp, value);
+    const first = logYMetricLine.data[0]
+    const dt = (timestamp - first[0]) / 1000;
+    const delta = value - first[1];
+    const speed = dt > 0 ? delta / dt : 0;
+    speedOut.innerHTML = `${speed.toFixed(1)} ip/с`
 }
 function addRLogValue(value) {
     const timestamp = new Date().getTime();
@@ -93,6 +99,7 @@ function notification(text){
 let interval
 
 start_stop.onclick = () =>{
+    if(speedOut.hidden != "") speedOut.hidden = ""
     started = !started
     start_stop.innerHTML = started? "стоп" : "старт"
     started? chart.start() : chart.stop()
@@ -121,18 +128,31 @@ setInterval(async () => {
             let players = []
             e.players.forEach((e) => players.push(e.name))
             const plToWrite = players.join(', ')
+
+            let mdOut = ""
+            if(e.md[0]){
+                mdOut += `<img src="pizli.png" style="width: 25px"> <br>`
+            }
+            if(e.md[1]){
+                mdOut += `<img src="sheet.png" style="width: 25px; margin-top: 13px">`
+            }
             findedBuilder +=
-                `<div class="list-item" onclick="if(event.target.tagName !== 'A'){const c=getComputedStyle(this).borderBottomColor; this.style.borderBottomColor = (c==='rgb(10, 252, 74)')?'white':'rgb(10, 252, 74)';}"><span>
+                `<div class="list-item"><span>
             <span class="link" style="color: #eded2a" onclick="copyText(this); event.stopPropagation();">${e.ip}:${e.port}</span><br>
             <span style="color: #ffffff">${(typeof e.modt === 'string' && e.modt !== '')? e.modt.replace(/§./g, '') : "none"}</span><br>
             <span style="color: #d1d1d1">версия: <span style="color: #00c4ff">${e.version}</span></span><br>
             <span style="color: #d1d1d1">игроков: <span style="color: #51da1b">${e.player_count}</span></span><br>
             <span style="color: #18d198">${plToWrite}</span>
-            </span></div>`;
+            </span>
+            <div>
+                ${mdOut}
+            </div>
+            </div>`;
+            //if(event.target.tagName !== 'A'){const c=getComputedStyle(this).borderBottomColor; this.style.borderBottomColor = (c==='rgb(10, 252, 74)')?'white':'rgb(10, 252, 74)';}
             finded.innerHTML = findedBuilder
         })
     }
-},500)
+},3000)
 
 function toggleActive() {
     this.classList.toggle('active');

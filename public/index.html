@@ -18,8 +18,8 @@
         <img src="logo_upd.jpg" class="iblo">
         <h3 class="hui">основные настройки</h3>
         <input type="text" placeholder="ip диапазон" value="urls.txt" class="inp" id="inp1"><br>
-        <input type="text" placeholder="диапазон портов" value="10000-50000" class="inp" id="inp2"><br>
-        <input type="text" placeholder="потоков" value="15" class="inp" id="inp3"><br>
+        <input type="text" placeholder="диапазон портов" value="20000-40000" class="inp" id="inp2"><br>
+        <input type="text" placeholder="потоков" value="150" class="inp" id="inp3"><br>
 
         <h3 class="hui">настройки прокси</h3>
         <input type="text" placeholder="ip" value="127.0.0.1" class="inp" id="inp4"><br>
@@ -31,6 +31,7 @@
 <!--        </div>-->
 <!--        <input type="text" placeholder="повторений до рестарта" value="1000" class="inp" id="inp6" style="margin-top: 15px"><br>-->
 <!--        <button style="margin-top: 5px" id="reload_manual">перезагрузить</button>-->
+        <button class="snow_btn" onclick="snowStorm.toggleSnow()">❄</button>
     </div>
     <div class="scroll-container" id="finded">
 
@@ -40,6 +41,7 @@
         <div class="chart-container", style="margin-top: 10px">
             <canvas id="log-canvas" width="210" height="175"></canvas>
         </div>
+        <p class="hui" hidden="hidden" id="speedOut">100 S/S</p>
         <div class="chart-container", style="margin-top: 10px">
             <canvas id="log-canvas2" width="210" height="175"></canvas>
         </div>
@@ -47,5 +49,9 @@
 
     <div id="copyNotification">ip скопирован</div>
     <script src="main_electron.js"></script>
+    <script src="snow.js"></script>
+    <script>
+
+    </script>
 </body>
 </html>

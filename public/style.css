@@ -1,3 +1,6 @@
+body, html {
+    overflow: hidden;
+}
 .body{
     background-color: #151515;
     display: flex;
@@ -23,7 +26,7 @@
     margin-top: 10px;
 }
 .scroll-container {
-    width: 300px;
+    width: 350px;
     height: 600px;
     overflow-y: auto;
     border: 1px solid #ccc;
@@ -72,4 +75,26 @@
 #copyNotification.show {
     opacity: 1;
     pointer-events: auto;
+}
+
+.overlay {
+    position: fixed;
+    inset: 0;          /* то же, что top:0; right:0; bottom:0; left:0 */
+    z-index: 9999;     /* чтобы быть поверх остальных элементов */
+    background: rgba(0, 0, 0, 0);  /* полупрозрачный фон (по желанию) */
+}
+
+.snow_btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
+    font-size: 40px;
+    display: flex;
+    align-items: center;
+    padding-bottom: 5px;
+    padding-right: 42px;
+    border-radius: 5px;
+    background-color: #fff;
 }
