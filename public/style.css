@@ -15,9 +15,28 @@ body, html {
 }
 .hui{
     color: snow;
+    font-family: "Google Sans", sans-serif;
 }
 .inp{
-    width: 200px;
+    width: 180px;
+    padding: 10px 12px;
+    background-color: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: snow;
+    font-family: "Montserrat", sans-serif;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+}
+.inp:focus{
+    outline: none;
+    border-color: #4a9eff;
+    background-color: #303030;
+    box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+}
+.inp::placeholder{
+    color: #888;
 }
 .check{
     display: flex;
@@ -29,11 +48,40 @@ body, html {
     width: 350px;
     height: 600px;
     overflow-y: auto;
-    border: 1px solid #ccc;
+    border: 1px solid #3a3a3a;
     padding: 10px;
     background-color: #242424;
     margin-top: 10px;
     margin-right: 10px;
+}
+
+.scroll-container::-webkit-scrollbar {
+    width: 12px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 6px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+    background: #3a3a3a;
+    border-radius: 6px;
+    border: 2px solid #1a1a1a;
+    transition: background 0.2s ease;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #4a4a4a;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:active {
+    background: #5a5a5a;
+}
+
+.scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: #3a3a3a #1a1a1a;
 }
 
 .list-item {
@@ -84,6 +132,24 @@ body, html {
     background: rgba(0, 0, 0, 0);  /* полупрозрачный фон (по желанию) */
 }
 
+button{
+    background-color: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: snow;
+    font-family: "Montserrat", sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding-bottom: 4px;
+}
+button:hover{
+    background-color: #353535;
+    border-color: #4a4a4a;
+}
+button:active{
+    transform: scale(0.98);
+}
 .snow_btn {
     position: fixed;
     bottom: 20px;
@@ -93,8 +159,10 @@ body, html {
     font-size: 40px;
     display: flex;
     align-items: center;
-    padding-bottom: 5px;
-    padding-right: 42px;
-    border-radius: 5px;
-    background-color: #fff;
+    justify-content: center;
+    padding-bottom: 6px;
+    background-color: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: snow;
 }

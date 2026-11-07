@@ -19,9 +19,10 @@ function send(proxy_ip,proxy_port,currentIp,currentPort,num,id){
         destination: { host: currentIp, port: currentPort },
         timeout: 60000
     };
-    console.log(proxy_ip,proxy_port,currentIp,currentPort,num,id)
+    //console.log(proxy_ip,proxy_port,currentIp,currentPort,num,id)
     SocksClient.createConnection(options).then((info) => {
-        console.log("connected")
+        //console.log("connected")
+        const timeStart = Date.now()
         client = info.socket
         client.setTimeout(60000, () => finish())
         const address_name = Buffer.from(currentIp, 'ascii')
@@ -53,7 +54,8 @@ function send(proxy_ip,proxy_port,currentIp,currentPort,num,id){
                     //console.log(jsonObject.players.online, jsonObject.players.sample,jsonObject.description)
                     //здесь удачу
                     //console.log("da nu")
-                    index.serverResponse({reason:'serverResponse',json:jsonObject,server:{ip:currentIp,port:currentPort}, debug:jsonString, num:num, ID: id})
+                    const timeEnd = Date.now()
+                    index.serverResponse({reason:'serverResponse',json:jsonObject,server:{ip:currentIp,port:currentPort}, debug:jsonString, num:num, ID: id, time:timeEnd-timeStart})
                 } catch (e) {
                     //console.error(e)
                     //здесь ошибки
@@ -81,7 +83,7 @@ function send(proxy_ip,proxy_port,currentIp,currentPort,num,id){
             finish()
         })
     }).catch((e) => {
-        console.log(e)
+        //console.log(e)
         finish()
     })
 }

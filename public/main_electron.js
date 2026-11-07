@@ -55,14 +55,14 @@ logErrMetrics.forEach((e) => {
     });
 })
 
-function addYLogValue(value) {
+function addYLogValue(value,wait) {
     const timestamp = new Date().getTime();
     logYMetricLine.append(timestamp, value);
     const first = logYMetricLine.data[0]
     const dt = (timestamp - first[0]) / 1000;
     const delta = value - first[1];
     const speed = dt > 0 ? delta / dt : 0;
-    speedOut.innerHTML = `${speed.toFixed(1)} ip/с`
+    speedOut.innerHTML = `${speed.toFixed(1)} ip/с | ${wait.toFixed(0)} мс`
 }
 function addRLogValue(value) {
     const timestamp = new Date().getTime();
@@ -102,18 +102,18 @@ start_stop.onclick = () =>{
     if(speedOut.hidden != "") speedOut.hidden = ""
     started = !started
     start_stop.innerHTML = started? "стоп" : "старт"
-    started? chart.start() : chart.stop()
-    started? chart2.start() : chart2.stop()
+    if(started) chart.start()
+    if(started) chart2.start()
     started? window.electronAPI.runSearch(ips.value,ports.value,treads.value,proxy_ip.value,proxy_port.value) : window.electronAPI.stopSearch()
     if(started){
         interval = setInterval(async () => {
             const stats = await window.electronAPI.getStats()
-            addYLogValue(stats.success)
+            addYLogValue(stats.success,stats.wait)
             addRLogValue(stats.errors)
             console.log(stats)
         },100)
     }else{
-        clearInterval(interval)
+        //clearInterval(interval)
     }
 }
 let LastResults = []

@@ -58,6 +58,7 @@ let workers = []
 let errors = 0
 let success = 0
 let founded = []
+let srWait = 0
 //founded.push({ip: "zhopa.aternos.host", port: "19827", modt: "Welcome to the server of Huesos!", version: "26.3", player_count: 1,players: [{"id":"5e6d9af9-67db-388b-8b04-414c8a76161e","name":"Huesos"}], md: [true,true]})
 
 const TOR_PASSWORD = 'pisun';
@@ -78,6 +79,12 @@ if(NEED_TO_DELETE) {
 }
 
 let tors = []
+const bridges = [
+    "[2001:db8:1d40:97df:c292:2f9f:cd0:3e1f]:443 F1134DE4A1BC52D87566A35EA7858CBD48925A6A url=https://hanoi.cam/ZBqRWKOXWRpmN8W6s2EufOuZ ver=0.0.7",
+    "[2001:db8:eedb:cae7:a345:4f72:f9cc:5de0]:443 B3C81E7A0CA474270DAA4A2C8633E1CA8935C37D url=https://wordpress.far-east-investment.ru/sORes7268CEUSRD7hAWvJU5A ver=0.0.7",
+    "[2001:db8:715b:f70c:e96d:2bfe:d8d1:f3ce]:443 47719009237699FB6DC7B52DE5F487B4D244D9F9 url=https://creeper.sbs/EJUv2XVQkHdMHwXJCwNUfGip ver=0.0.4",
+    "[2001:db8:9e1a:414a:6386:1721:6e09:cbaf]:443 1B6EBD6C1D5438C4AEE8D1C903F58754FE11E1BD url=https://www2.ruhnama.net/VsCk1XCZv5noySVy1CERKqkx ver=0.0.5"
+]
 for(let i = 0; i < NUM_OF_TORS; i++) {
     const torArgs = [
         '--ControlPort', (9051+i).toString(),
@@ -85,9 +92,10 @@ for(let i = 0; i < NUM_OF_TORS; i++) {
         '--SocksPort', (9050-i).toString(),
         '--UseBridges', '1',
         '--ClientTransportPlugin', 'webtunnel exec pluggable_transports/lyrebird.exe',
-        '--Bridge', 'webtunnel [2001:db8:3ce4:c7c7:1316:3072:b8e9:b915]:443 07E8A7DFCA7B76DD0E2F1E8C6C74D9910AAF279E url=https://shenvalleygamers.com/7HxRIWqsmkPOemUcLFTGuPaW ver=0.0.4',
+        '--Bridge', `webtunnel ${bridges[getRandomInt(0, 4)]}`,
         '--DataDirectory', path.join(__dirname,`tmp\\Tor${i}\\tor\\tor_data`)
     ];
+    //console.log(torArgs)
 
     const torProcess = spawn(path.join(__dirname, `tmp\\Tor${i}\\tor\\tor.exe`), torArgs, {
         windowsHide: false,
@@ -95,7 +103,7 @@ for(let i = 0; i < NUM_OF_TORS; i++) {
     });
 
     torProcess.stdout.on('data', async (data) => {
-        true? console.log(`[Tor ${i} STDOUT]: ${data.toString()}`) : undefined;
+        0? console.log(`[Tor ${i} STDOUT]: ${data.toString()}`) : undefined;
         if(data.toString().includes("We tried for 15 seconds to connect to")){
             if(tors[i].er !== undefined){
                 errors++
@@ -113,10 +121,6 @@ for(let i = 0; i < NUM_OF_TORS; i++) {
 // Отслеживание завершения процесса (для диагностики)
     torProcess.on('close', (code) => {
         console.log(`[Tor ${i}] stopped: ${code}`);
-        torProcess[i] = spawn(path.join(__dirname, `tmp\\Tor${i}\\tor\\tor.exe`), torArgs, {
-            windowsHide: false,
-            stdio: "pipe"
-        })
     });
 
     tors.push({pr: torProcess,ar: torArgs,er: 0})
@@ -141,6 +145,7 @@ function getRandomArbitrary(min, max) {
 
 function contWork(){
     workers.forEach((e) => {
+        if(e.inWork === undefined) return
         if(!e.inWork) {
             const salt = Math.floor(Math.random() * 1000000);
             const i = e.currentI
@@ -190,7 +195,8 @@ ipcMain.handle('runSearch', async (event,urlsPath,ports,treads,proxy_ip,proxy_po
                 proxy_ip: proxy_ip,
                 proxy_ports: proxy_ports,
                 inWork: false,
-                currentI: startIdx
+                currentI: startIdx,
+                lastWait: 0
         })
     }
     contWork()
@@ -201,6 +207,19 @@ function serverResponse(result){
     //console.log("kruto",result)
     if(tors[result.num].er>0) tors[result.num].er -= 0.5
     success++
+    if(workers[result.ID] !== undefined){
+        workers[result.ID].lastWait = result.time
+        srWait = 0
+        let cnt = 0
+        workers.forEach((e) => {
+            if(e.lastWait !== 0) {
+                cnt+=1
+                srWait += e.lastWait
+            }
+        })
+        srWait = srWait/cnt
+        //console.log(srWait)
+    }
 
     const aboutServer = result.json
     //console.log(result)
@@ -220,7 +239,7 @@ function serverResponse(result){
         founded.push({ip: result.server.ip, port: result.server.port, modt: msg.toString(), version: aboutServer.version.name, player_count: aboutServer.players.online,players: aboutServer.players.sample,md:[fd,sd]})
     }
     setTimeout(()=>{
-        workers[result.ID].inWork = false
+        if(workers[result.ID] !== undefined) workers[result.ID].inWork = false
         contWork()
     },getRandomArbitrary(5000,10000))
 }
@@ -231,22 +250,19 @@ async function serverError(result){
     await restartTor(false,tors[result.num])
     console.log(tors)
     setTimeout(()=>{
-        workers[result.ID].inWork = false
+        if(workers[result.ID] !== undefined) workers[result.ID].inWork = false
         contWork()
     },getRandomArbitrary(5000,10000))
 }
 
 ipcMain.handle('stopSearch', async () => {
-    workers.forEach((e) => {
-        e.postMessage({task:'stop'})
-    })
     workers = []
 })
 
 ipcMain.handle('getStats', async () => {
     let ers = []
     tors.forEach((e) => {ers.push(e.er)})
-    return {success: success,errors: ers}
+    return {success: success,errors: ers, wait: srWait}
 })
 
 ipcMain.handle('getResults', () => {
