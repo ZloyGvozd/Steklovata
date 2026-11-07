@@ -5,6 +5,7 @@ const fss = require('fs');
 const { Worker } = require('worker_threads');
 const net = require("net");
 const {spawn} = require("child_process");
+const starost = require("./Starost")
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -84,7 +85,7 @@ for(let i = 0; i < NUM_OF_TORS; i++) {
         '--SocksPort', (9050-i).toString(),
         '--UseBridges', '1',
         '--ClientTransportPlugin', 'webtunnel exec pluggable_transports/lyrebird.exe',
-        '--Bridge', 'webtunnel [2001:db8:1169:5d59:447d:1feb:3595:b174]:443 9E22636EA817AD4FE43F2EC14DEED5131FED1CB0 url=https://cdn-40.triplebit.dev/aif5ohWa4aWiephu ver=0.0.2',
+        '--Bridge', 'webtunnel [2001:db8:3ce4:c7c7:1316:3072:b8e9:b915]:443 07E8A7DFCA7B76DD0E2F1E8C6C74D9910AAF279E url=https://shenvalleygamers.com/7HxRIWqsmkPOemUcLFTGuPaW ver=0.0.4',
         '--DataDirectory', path.join(__dirname,`tmp\\Tor${i}\\tor\\tor_data`)
     ];
 
@@ -93,8 +94,15 @@ for(let i = 0; i < NUM_OF_TORS; i++) {
         stdio: "pipe"
     });
 
-    torProcess.stdout.on('data', (data) => {
-        false? console.log(`[Tor ${i} STDOUT]: ${data.toString()}`) : undefined;
+    torProcess.stdout.on('data', async (data) => {
+        true? console.log(`[Tor ${i} STDOUT]: ${data.toString()}`) : undefined;
+        if(data.toString().includes("We tried for 15 seconds to connect to")){
+            if(tors[i].er !== undefined){
+                errors++
+                tors[i].er++
+                await restartTor(false,tors[i])
+            }
+        }
     });
 
 // Вывод ошибок
@@ -105,9 +113,50 @@ for(let i = 0; i < NUM_OF_TORS; i++) {
 // Отслеживание завершения процесса (для диагностики)
     torProcess.on('close', (code) => {
         console.log(`[Tor ${i}] stopped: ${code}`);
+        torProcess[i] = spawn(path.join(__dirname, `tmp\\Tor${i}\\tor\\tor.exe`), torArgs, {
+            windowsHide: false,
+            stdio: "pipe"
+        })
     });
 
     tors.push({pr: torProcess,ar: torArgs,er: 0})
+}
+
+function getShuffledPortOffset(index, max, salt) {
+    // Используем простую хэш-функцию (Knuth's multiplicative method)
+    // Число 2654435761 — это золотое сечение для 32-битных чисел, отлично распределяет
+    const hash = Math.imul(index+salt, 2654435761);
+    return Math.abs(hash) % max;
+}
+
+function getRandomInt(min, max) {
+    const minCeiled = Math.ceil(min);
+    const maxFloored = Math.floor(max);
+    return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled); // The maximum is exclusive and the minimum is inclusive
+}
+
+function getRandomArbitrary(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+function contWork(){
+    workers.forEach((e) => {
+        if(!e.inWork) {
+            const salt = Math.floor(Math.random() * 1000000);
+            const i = e.currentI
+            const ipIndex = Math.floor(i / e.portsCount);
+            const currentIp = e.hosts[ipIndex];
+            const sequentialPortOffset = i % e.portsCount;
+            const randomPortOffset = getShuffledPortOffset(sequentialPortOffset, e.portsCount, salt);
+            const currentPort = e.startPort + randomPortOffset;
+            const randomPort = getRandomInt(0, e.proxy_ports.length)
+
+            starost.send(e.proxy_ip, parseInt(e.proxy_ports[randomPort]), currentIp, currentPort, randomPort,e.workerId)
+            //starost.send("127.0.0.1", 10808, currentIp, currentPort, randomPort, e.workerId)
+            e.inWork = true
+            e.currentI +=1
+        }
+    })
 }
 
 ipcMain.handle('runSearch', async (event,urlsPath,ports,treads,proxy_ip,proxy_port)=>{
@@ -123,67 +172,69 @@ ipcMain.handle('runSearch', async (event,urlsPath,ports,treads,proxy_ip,proxy_po
     const totalTasks = hosts.length * portsCount;
 
     const tasksPerWorker = Math.ceil(totalTasks / treads);
+    let proxy_ports = []
+    tors.forEach((e)=>{proxy_ports.push(e.ar[5])})
+    console.log(proxy_ports)
 
     //создание воркеров
     for(let i=0; i<treads; i++){
         const startIdx = i * tasksPerWorker;
         const endIdx = Math.min(startIdx + tasksPerWorker - 1, totalTasks - 1);
-
-        let proxy_ports = []
-        tors.forEach((e)=>{proxy_ports.push(e.ar[5])})
-        console.log(proxy_ports)
-        workers.push(new Worker('./worker.js', {
-            workerData: {
+        workers.push({
                 workerId: i,
-                startIdx,
-                endIdx,
-                hosts,
-                startPort,
-                portsCount,
-                proxy_ip,
-                proxy_ports
-            }
-        }))
-    }
-    workers.forEach((e) => {
-        e.on('message',async (result)=>{
-            if(result.reason === 'serverResponse'){
-                if(tors[result.num].er>0) tors[result.num].er -= 0.5
-                success++
-
-                const aboutServer = result.json
-                //console.log(result)
-                if(aboutServer.players.online > 0){
-                    logToFile(result.debug)
-                    let msg = ""
-                    try {
-                        const ChatMessage = require('prismarine-chat')(aboutServer.version.name)
-                        const rawData = aboutServer.description
-                        msg = new ChatMessage(rawData)
-                    }catch(e){
-                        logToFile("piplich")
-                        msg = aboutServer.description
-                    }
-                    const sd = 'enforcesSecureChat' in aboutServer
-                    const fd = 'modinfo' in aboutServer
-                    founded.push({ip: result.server.ip, port: result.server.port, modt: msg.toString(), version: aboutServer.version.name, player_count: aboutServer.players.online,players: aboutServer.players.sample,md:[fd,sd]})
-                }
-            }if(result.reason === 'serverError'){
-                errors++
-                tors[result.num].er++
-                await restartTor(false,tors[result.num])
-                console.log(tors)
-            }if(result.reason === 'serverTimeout'){
-                errors++
-                tors[result.num].er++
-                await restartTor(false,tors[result.num])
-                console.log(tors)
-            }
+                startIdx: startIdx,
+                endIdx: endIdx,
+                hosts: hosts,
+                startPort: startPort,
+                portsCount: portsCount,
+                proxy_ip: proxy_ip,
+                proxy_ports: proxy_ports,
+                inWork: false,
+                currentI: startIdx
         })
-    })
-
+    }
+    contWork()
     console.log(hosts,startPort,endPort,tasksPerWorker)
 })
+
+function serverResponse(result){
+    //console.log("kruto",result)
+    if(tors[result.num].er>0) tors[result.num].er -= 0.5
+    success++
+
+    const aboutServer = result.json
+    //console.log(result)
+    if(aboutServer.players.online > 0){
+        logToFile(result.debug)
+        let msg = ""
+        try {
+            const ChatMessage = require('prismarine-chat')(aboutServer.version.name)
+            const rawData = aboutServer.description
+            msg = new ChatMessage(rawData)
+        }catch(e){
+            logToFile("piplich")
+            msg = aboutServer.description
+        }
+        const sd = 'enforcesSecureChat' in aboutServer
+        const fd = 'modinfo' in aboutServer
+        founded.push({ip: result.server.ip, port: result.server.port, modt: msg.toString(), version: aboutServer.version.name, player_count: aboutServer.players.online,players: aboutServer.players.sample,md:[fd,sd]})
+    }
+    setTimeout(()=>{
+        workers[result.ID].inWork = false
+        contWork()
+    },getRandomArbitrary(5000,10000))
+}
+
+async function serverError(result){
+    errors++
+    tors[result.num].er++
+    await restartTor(false,tors[result.num])
+    console.log(tors)
+    setTimeout(()=>{
+        workers[result.ID].inWork = false
+        contWork()
+    },getRandomArbitrary(5000,10000))
+}
 
 ipcMain.handle('stopSearch', async () => {
     workers.forEach((e) => {
@@ -234,3 +285,5 @@ async function restartTor(manual,tor){
     }
 }
 
+exports.serverResponse = serverResponse
+exports.serverError = serverError
